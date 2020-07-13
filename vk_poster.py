@@ -36,16 +36,7 @@ def get_wall_post_func(id: int,
                                  attachments=attachments,
                                  publish_date=int(date.timestamp()) if date else None
                                  )
-
     if user:
         return f.partial(wall_post_method, owner_id=id)
     else:
         return f.partial(wall_post_method, owner_id=-id)
-
-
-async def test():
-    concrete_api = make_api_context(sys.argv[1], t.UserSyncSingleToken, client.AIOHTTPClient)
-    
-    return concrete_api
-
-print(asyncio.get_event_loop().run_until_complete(test()))
