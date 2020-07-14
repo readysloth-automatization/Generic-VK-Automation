@@ -5,10 +5,22 @@ import asyncio
 import datetime as d
 import functools as f
 
+from enum import Enum, auto
+
 import vkwave.api as vapi
 import vkwave.api.token.token as t
 import vkwave.client as client
 import vkwave.client.abstract as abstr
+import vkwave.bots.utils.uploaders as upl
+
+
+class UploaderType(Enum):
+    Document = auto()
+    Graffity = auto()
+    Voice = auto()
+    Photo = auto()
+    WallPhoto = auto()
+    
 
 def make_token(token: str, token_type: t.AnyABCToken) -> t.AnyABCToken:
     return token_type(t.Token(token))
@@ -40,3 +52,54 @@ def get_wall_post_func(id: int,
         return f.partial(wall_post_method, owner_id=id)
     else:
         return f.partial(wall_post_method, owner_id=-id)
+
+def get_uploader(uploader_type: UploaderType, api_context: vapi.APIOptionsRequestContext) -> upl.BaseUploader:
+    return {
+        UploaderType.Document: upl.DocUploader(api_context),
+        UploaderType.Voice: upl.VoiceUploader(api_context),
+        UploaderType.Photo: upl.PhotoUploader(api_context),
+        UploaderType.WallPhoto: upl.WallPhotoUploader(api_context),
+
+    }[uploader_type]
+
+async def upload_files(files: typing.Union[list, str],
+                 id: int,
+                 uploader_type: UploaderType,
+                 api_context: vapi.APIOptionsRequestContext,
+                 user: bool = False) -> str:
+    async def upload_one_file(file: str):
+        if uploader_type == UploaderType.WallPhoto:
+            return await uploader.get_attachment_from_path(file, -id)
+
+        server_url = ''
+        if user:
+            server_url = await uploader.get_server(id)
+        else:
+            server_url = await uploader.get_server(-id)
+
+        with open(file, 'rb') as f:
+            return uploader.attachment_name(await uploader.upload(server_url, f))
+
+    if type(files) != list:
+        files = [str(files)]
+    uploader = get_uploader(uploader_type, api_context)
+
+    results = []
+    for file in files:
+        results.append(await upload_one_file(file))
+    
+    return results
+    
+    
+async def test():
+        concrete_api = make_api_context(sys.argv[1], t.UserSyncSingleToken, client.AIOHTTPClient)
+        url_arg = await upload_files(['in_deep_space.jpg','in_deep_space.jpg'], 196946159, UploaderType.WallPhoto, concrete_api)
+        await get_wall_post_func(196946159,
+                           'тест',
+                           concrete_api,
+                           attachments=url_arg
+                           )()
+        return url_arg
+            
+
+print(asyncio.get_event_loop().run_until_complete(test()))
