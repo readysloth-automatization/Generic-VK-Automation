@@ -65,35 +65,37 @@ def get_uploader(uploader_type: UploaderType, api_context: vapi.APIOptionsReques
 async def upload_files(files: typing.Union[list, str],
                  id: int,
                  uploader_type: UploaderType,
-                 api_context: vapi.APIOptionsRequestContext,
-                 user: bool = False) -> str:
+                 api_context: vapi.APIOptionsRequestContext) -> str:
+    group_id = -id
+
     async def upload_one_file(file: str):
         if uploader_type == UploaderType.WallPhoto:
-            return await uploader.get_attachment_from_path(file, -id)
+            return await uploader.get_attachment_from_path(file, group_id)
 
-        server_url = ''
-        if user:
-            server_url = await uploader.get_server(id)
-        else:
-            server_url = await uploader.get_server(-id)
-
+        server_url = await uploader.get_server(group_id)
         with open(file, 'rb') as f:
             return uploader.attachment_name(await uploader.upload(server_url, f))
 
     if type(files) != list:
         files = [str(files)]
+
     uploader = get_uploader(uploader_type, api_context)
 
-    results = []
+    tasks = []
     for file in files:
-        results.append(await upload_one_file(file))
+        tasks.append(upload_one_file(file))
+
+    attachments = await asyncio.gather(*tasks)
     
-    return results
+    return attachments
     
     
 async def test():
         concrete_api = make_api_context(sys.argv[1], t.UserSyncSingleToken, client.AIOHTTPClient)
-        url_arg = await upload_files(['in_deep_space.jpg','in_deep_space.jpg'], 196946159, UploaderType.WallPhoto, concrete_api)
+        url_arg = await upload_files(['in_deep_space.jpg','in_deep_space.jpg'],
+                                     196946159,
+                                     UploaderType.WallPhoto,
+                                     concrete_api)
         await get_wall_post_func(196946159,
                            'тест',
                            concrete_api,
