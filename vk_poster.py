@@ -21,20 +21,19 @@ class UploaderType(Enum):
     Photo = auto()
     WallPhoto = auto()
     
-
 def make_token(token: str, token_type: t.AnyABCToken) -> t.AnyABCToken:
     return token_type(t.Token(token))
 
 def make_api(token: str,
              token_type: t.AnyABCToken,
              client_type: abstr.AbstractAPIClient) -> vapi.API:
-    return vapi.API(tokens=make_token(token, token_type),
-                      clients=client_type())
+    made_client = client_type()
+    return vapi.API(tokens=make_token(token,
+                                      token_type),
+                    clients=made_client), made_client
 
-def make_api_context(token: str,
-                     token_type: t.AnyABCToken,
-                     client_type: abstr.AbstractAPIClient) -> vapi.APIOptionsRequestContext:
-    return make_api(token, token_type, client_type).get_context()
+def make_api_context(vk_api: vapi.API) -> vapi.APIOptionsRequestContext:
+    return vk_api.get_context()
 
 def get_wall_post_func(id: int,
                        message: str,
@@ -88,20 +87,3 @@ async def upload_files(files: typing.Union[list, str],
     attachments = await asyncio.gather(*tasks)
     
     return attachments
-    
-    
-async def test():
-        concrete_api = make_api_context(sys.argv[1], t.UserSyncSingleToken, client.AIOHTTPClient)
-        url_arg = await upload_files(['in_deep_space.jpg','in_deep_space.jpg'],
-                                     196946159,
-                                     UploaderType.WallPhoto,
-                                     concrete_api)
-        await get_wall_post_func(196946159,
-                           'тест',
-                           concrete_api,
-                           attachments=url_arg
-                           )()
-        return url_arg
-            
-
-print(asyncio.get_event_loop().run_until_complete(test()))
