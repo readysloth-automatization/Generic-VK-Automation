@@ -27,3 +27,4 @@ def get_wall_post_func(id: int,
         return f.partial(wall_post_method, owner_id=id)
     else:
         return f.partial(wall_post_method, owner_id=-id)
+
