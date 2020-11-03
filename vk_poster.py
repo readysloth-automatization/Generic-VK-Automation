@@ -28,3 +28,22 @@ def get_wall_post_func(id: int,
     else:
         return f.partial(wall_post_method, owner_id=-id)
 
+async def test():
+        vk_api, made_client = utils.make_api(sys.argv[1],
+                                       t.UserSyncSingleToken,
+                                       client.AIOHTTPClient)
+        concrete_api = utils.make_api_context(vk_api)
+        url_arg = await utils.upload_files(['in_deep_space.jpg','in_deep_space.jpg'],
+                                     196946159,
+                                     utils.UploaderType.WallPhoto,
+                                     concrete_api)
+        await get_wall_post_func(196946159,
+                           'тест',
+                           concrete_api,
+                           attachments=url_arg
+                           )()
+        await made_client.close()
+        return url_arg
+            
+
+print(asyncio.get_event_loop().run_until_complete(test()))
