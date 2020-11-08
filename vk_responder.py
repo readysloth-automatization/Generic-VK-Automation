@@ -25,15 +25,3 @@ def assign_message_handler(bot: bots.SimpleLongPollBot,
         bot.message_handler(filter)(handler)
         return
     bot.message_handler()(handler)
-
-async def simple(event: bots.SimpleBotEvent):
-    await event.answer("hello from vkwave!")
-
-def test():
-    bot = make_longpoll_bot(sys.argv[1], 196946159)
-    #bot.text_filter("hello")
-    assign_message_handler(bot, simple)
-
-
-    bot.run_forever()
-test()
